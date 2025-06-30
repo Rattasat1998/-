@@ -388,7 +388,15 @@
 
         // --- Firebase Initialization and Authentication ---
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const firebaseConfig = {
+  apiKey: "AIzaSyD8kypfPYtXOZsRmG_cas9jbhr5aAkAJZ8",
+  authDomain: "up50-634dd.firebaseapp.com",
+  projectId: "up50-634dd",
+  storageBucket: "up50-634dd.firebasestorage.app",
+  messagingSenderId: "978783179583",
+  appId: "1:978783179583:web:e827d09ad1075ba679798a",
+  measurementId: "G-N5HQ7H7FVV"
+};
 
         // Initialize Firebase
         app = initializeApp(firebaseConfig);
