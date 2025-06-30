@@ -13,11 +13,15 @@
             background-color: #f0f2f5;
             color: #333;
             line-height: 1.6;
+            display: flex; /* Use flexbox for centering content */
+            flex-direction: column;
+            min-height: 100vh;
         }
         .container {
             max-width: 960px;
             margin: 0 auto;
             padding: 2rem;
+            flex-grow: 1; /* Allow container to grow and push footer down */
         }
         /* Admin Panel Styles */
         .admin-section {
@@ -41,7 +45,9 @@
         }
         .admin-form input[type="text"],
         .admin-form textarea,
-        .admin-form select {
+        .admin-form select,
+        .admin-form input[type="email"], /* Added for login form */
+        .admin-form input[type="password"] { /* Added for login form */
             width: 100%;
             padding: 0.75rem;
             border: 1px solid #ccc;
@@ -170,6 +176,33 @@
             background-color: #95a5a6;
         }
 
+        /* Login Form Specific Styles */
+        #loginSection {
+            background-color: #ffffff;
+            border-radius: 1rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            padding: 2.5rem;
+            max-width: 400px;
+            margin: 50px auto;
+            text-align: center;
+        }
+        #loginSection h2 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 1.5rem;
+        }
+        #loginSection button {
+            width: 100%;
+            padding: 1rem;
+            font-size: 1.1rem;
+        }
+        #loginSection p.error-message {
+            color: #e74c3c;
+            margin-top: 1rem;
+            font-weight: 600;
+        }
+
         /* Responsive adjustments */
         @media (max-width: 768px) {
             .container {
@@ -196,6 +229,13 @@
                 padding: 0.6rem 1rem;
                 font-size: 0.9rem;
             }
+            #loginSection {
+                padding: 1.5rem;
+                margin: 20px auto;
+            }
+            #loginSection h2 {
+                font-size: 1.5rem;
+            }
         }
     </style>
 </head>
@@ -204,17 +244,35 @@
         <header class="text-center py-8 bg-white rounded-xl shadow-md mb-8">
             <h1 class="text-4xl font-bold text-blue-700 mb-2">แผงควบคุมงาน (หลังบ้าน)</h1>
             <p class="text-xl text-gray-600">จัดการประกาศงานสำหรับผู้สูงอายุ</p>
-            <div class="mt-4">
+            <div class="mt-4 flex justify-center items-center gap-4">
                 <!-- Link to Frontend -->
                 <a href="index.html" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200">
                     กลับไปหน้าหางาน
                 </a>
+                <button id="logoutBtn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200" style="display:none;">
+                    ออกจากระบบ
+                </button>
             </div>
             <p id="userIdDisplay" class="text-sm text-gray-400 mt-2"></p>
         </header>
 
-        <!-- Admin Panel -->
-        <div id="adminPanel" class="admin-section mb-8">
+        <!-- Login Section -->
+        <div id="loginSection" class="admin-section" style="display:none;">
+            <h2>เข้าสู่ระบบผู้ดูแลระบบ</h2>
+            <div class="admin-form">
+                <label for="adminEmail">อีเมล:</label>
+                <input type="email" id="adminEmail" placeholder="admin@example.com" required>
+
+                <label for="adminPassword">รหัสผ่าน:</label>
+                <input type="password" id="adminPassword" placeholder="รหัสผ่าน" required>
+
+                <button id="loginBtn" class="bg-green-500 hover:bg-green-600">เข้าสู่ระบบ</button>
+                <p id="loginError" class="error-message" style="display:none;"></p>
+            </div>
+        </div>
+
+        <!-- Admin Panel (Content) -->
+        <div id="adminPanelContent" class="admin-section mb-8" style="display:none;">
             <h2 class="text-2xl font-bold text-gray-800 mb-4">จัดการงาน</h2>
 
             <!-- Add/Edit Job Form -->
@@ -283,7 +341,7 @@
     <script type="module">
         // Firebase Imports
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, onSnapshot, addDoc, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Global Firebase variables
@@ -296,8 +354,17 @@
         // Admin Panel Elements
         const userIdDisplay = document.getElementById('userIdDisplay');
         const adminJobListings = document.getElementById('adminJobListings');
+        const adminPanelContent = document.getElementById('adminPanelContent'); // The actual admin content
+        const loginSection = document.getElementById('loginSection'); // The login form
 
-        // Admin Form Elements
+        // Login Form Elements
+        const adminEmailInput = document.getElementById('adminEmail');
+        const adminPasswordInput = document.getElementById('adminPassword');
+        const loginBtn = document.getElementById('loginBtn');
+        const loginError = document.getElementById('loginError');
+        const logoutBtn = document.getElementById('logoutBtn');
+
+        // Admin Form Elements (for adding/editing jobs)
         const formTitle = document.getElementById('formTitle');
         const jobIdToEdit = document.getElementById('jobIdToEdit');
         const jobTitleInput = document.getElementById('jobTitle');
@@ -331,32 +398,78 @@
         // Listen for auth state changes
         onAuthStateChanged(auth, async (user) => {
             if (user) {
+                // User is signed in. Check if it's an admin user (for simplicity, any logged in user is admin here)
                 userId = user.uid;
-                userIdDisplay.textContent = `User ID: ${userId}`;
+                userIdDisplay.textContent = `Admin User ID: ${userId}`;
+                loginSection.style.display = 'none'; // Hide login form
+                adminPanelContent.style.display = 'block'; // Show admin content
+                logoutBtn.style.display = 'inline-block'; // Show logout button
+                isAuthReady = true;
+                listenForJobs(); // Start listening for job data
             } else {
-                // Sign in anonymously if no user is logged in
-                try {
-                    if (typeof __initial_auth_token !== 'undefined') {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    } else {
-                        await signInAnonymously(auth);
-                    }
-                } catch (error) {
-                    console.error("Error signing in:", error);
-                    userIdDisplay.textContent = "Error signing in.";
-                }
-            }
-            isAuthReady = true;
-            // Once authenticated, start listening for job data
-            if (userId) {
-                listenForJobs();
+                // User is signed out
+                userId = null;
+                userIdDisplay.textContent = "ไม่ได้เข้าสู่ระบบ";
+                loginSection.style.display = 'block'; // Show login form
+                adminPanelContent.style.display = 'none'; // Hide admin content
+                logoutBtn.style.display = 'none'; // Hide logout button
+                isAuthReady = false;
+                // Clear job listings if not authenticated
+                adminJobListings.innerHTML = '';
+                jobs = [];
             }
         });
+
+        // --- Firebase Authentication Functions ---
+
+        // Handle Admin Login
+        async function handleLogin() {
+            const email = adminEmailInput.value;
+            const password = adminPasswordInput.value;
+            loginError.style.display = 'none'; // Hide previous errors
+
+            if (!email || !password) {
+                loginError.textContent = 'กรุณากรอกอีเมลและรหัสผ่าน';
+                loginError.style.display = 'block';
+                return;
+            }
+
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                // Auth state change listener will handle UI updates
+            } catch (error) {
+                console.error("Login error:", error);
+                let errorMessage = 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ';
+                if (error.code === 'auth/invalid-email' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                    errorMessage = 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
+                } else if (error.code === 'auth/too-many-requests') {
+                    errorMessage = 'มีการพยายามเข้าสู่ระบบมากเกินไป กรุณาลองใหม่ในภายหลัง';
+                }
+                loginError.textContent = errorMessage;
+                loginError.style.display = 'block';
+            }
+        }
+
+        // Handle Logout
+        async function handleLogout() {
+            try {
+                await signOut(auth);
+                // Auth state change listener will handle UI updates
+                console.log("Logged out successfully.");
+            } catch (error) {
+                console.error("Error logging out:", error);
+            }
+        }
 
         // --- Firestore Operations ---
 
         // Listen for real-time updates to job listings
         function listenForJobs() {
+            // Ensure userId is available before attempting to listen
+            if (!isAuthReady || !userId) {
+                console.warn("Authentication not ready or user not logged in. Cannot listen for jobs.");
+                return;
+            }
             const jobsCollectionRef = collection(db, `artifacts/${appId}/public/data/jobs`);
             onSnapshot(jobsCollectionRef, (snapshot) => {
                 const fetchedJobs = [];
@@ -367,6 +480,10 @@
                 renderAdminJobListings(jobs); // Re-render admin job list
             }, (error) => {
                 console.error("Error listening to jobs collection:", error);
+                // Handle permission denied or other errors
+                if (error.code === 'permission-denied') {
+                    userIdDisplay.textContent = "ไม่ได้รับอนุญาตให้เข้าถึงข้อมูล";
+                }
             });
         }
 
@@ -559,9 +676,13 @@
             }
         });
 
+        // --- Event Listeners ---
+        loginBtn.addEventListener('click', handleLogin);
+        logoutBtn.addEventListener('click', handleLogout);
+
         // Initial render and setup when the page loads
         window.onload = () => {
-            // Initial render will happen after Firebase auth is ready and data is fetched
+            // The onAuthStateChanged listener will handle the initial UI state
         };
     </script>
 </body>
