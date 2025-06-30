@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>แอปหางานสำหรับผู้สูงอายุ - หลังบ้าน</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        /* Admin Panel Styles */
+        .admin-section {
+            background-color: #ffffff;
+            border-radius: 1rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .admin-section h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 1rem;
+        }
+        .admin-form label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #555;
+        }
+        .admin-form input[type="text"],
+        .admin-form textarea,
+        .admin-form select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ccc;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+            font-size: 1rem;
+        }
+        .admin-form button {
+            background-color: #3498db;
+            color: white;
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+        }
+        .admin-form button:hover {
+            background-color: #2980b9;
+        }
+        .admin-job-list {
+            margin-top: 1.5rem;
+        }
+        .admin-job-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #eee;
+        }
+        .admin-job-item:last-child {
+            border-bottom: none;
+        }
+        .admin-job-item span {
+            font-weight: 500;
+            color: #444;
+        }
+        .admin-job-item .actions button {
+            margin-left: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.5rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+        }
+        .admin-job-item .actions .edit-btn {
+            background-color: #f39c12;
+            color: white;
+        }
+        .admin-job-item .actions .edit-btn:hover {
+            background-color: #e67e22;
+        }
+        .admin-job-item .actions .delete-btn {
+            background-color: #e74c3c;
+            color: white;
+        }
+        .admin-job-item .actions .delete-btn:hover {
+            background-color: #c0392b;
+        }
+
+        /* Confirmation Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            background-color: #ffffff;
+            padding: 2.5rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            max-width: 400px; /* Smaller for confirmation */
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            position: relative;
+            transform: scale(0.95);
+            transition: transform 0.3s ease;
+            text-align: center; /* Center text in confirmation modal */
+        }
+        .modal-overlay.show .modal-content {
+            transform: scale(1);
+        }
+        .modal-content p {
+            font-size: 1.2rem;
+            margin-bottom: 1.5rem;
+        }
+        .modal-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+        }
+        .modal-buttons button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s ease-in-out;
+        }
+        .modal-buttons .confirm-yes {
+            background-color: #e74c3c;
+            color: white;
+        }
+        .modal-buttons .confirm-yes:hover {
+            background-color: #c0392b;
+        }
+        .modal-buttons .confirm-no {
+            background-color: #bdc3c7;
+            color: #333;
+        }
+        .modal-buttons .confirm-no:hover {
+            background-color: #95a5a6;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            .admin-section h2 {
+                font-size: 1.2rem;
+            }
+            .admin-form input, .admin-form textarea, .admin-form select {
+                font-size: 0.9rem;
+                padding: 0.6rem;
+            }
+            .admin-form button {
+                padding: 0.6rem 1rem;
+                font-size: 0.9rem;
+            }
+            .modal-content {
+                padding: 1.5rem;
+            }
+            .modal-content p {
+                font-size: 1rem;
+            }
+            .modal-buttons button {
+                padding: 0.6rem 1rem;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="text-center py-8 bg-white rounded-xl shadow-md mb-8">
+            <h1 class="text-4xl font-bold text-blue-700 mb-2">แผงควบคุมงาน (หลังบ้าน)</h1>
+            <p class="text-xl text-gray-600">จัดการประกาศงานสำหรับผู้สูงอายุ</p>
+            <div class="mt-4">
+                <!-- Link to Frontend -->
+                <a href="index.html" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors duration-200">
+                    กลับไปหน้าหางาน
+                </a>
+            </div>
+            <p id="userIdDisplay" class="text-sm text-gray-400 mt-2"></p>
+        </header>
+
+        <!-- Admin Panel -->
+        <div id="adminPanel" class="admin-section mb-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">จัดการงาน</h2>
+
+            <!-- Add/Edit Job Form -->
+            <div class="admin-form">
+                <h3 class="text-xl font-semibold text-gray-700 mb-3" id="formTitle">เพิ่มงานใหม่</h3>
+                <input type="hidden" id="jobIdToEdit">
+                <label for="jobTitle">ตำแหน่ง:</label>
+                <input type="text" id="jobTitle" placeholder="เช่น: พนักงานต้อนรับ" required>
+
+                <label for="jobCompany">บริษัท:</label>
+                <input type="text" id="jobCompany" placeholder="เช่น: โรงแรมสุขใจ" required>
+
+                <label for="jobLocation">สถานที่:</label>
+                <input type="text" id="jobLocation" placeholder="เช่น: กรุงเทพฯ" required>
+
+                <label for="jobCategory">หมวดหมู่:</label>
+                <select id="jobCategory" required>
+                    <option value="">เลือกหมวดหมู่</option>
+                    <option value="บริการลูกค้า">บริการลูกค้า</option>
+                    <option value="ธุรการ">ธุรการ</option>
+                    <option value="การศึกษา">การศึกษา</option>
+                    <option value="สุขภาพ">สุขภาพ</option>
+                    <option value="ค้าปลีก">ค้าปลีก</option>
+                    <option value="งานฝีมือ">งานฝีมือ</option>
+                    <option value="ที่ปรึกษา">ที่ปรึกษา</option>
+                </select>
+
+                <label for="jobDescription">คำอธิบายสั้นๆ:</label>
+                <textarea id="jobDescription" rows="2" placeholder="คำอธิบายสั้นๆ เกี่ยวกับงาน" required></textarea>
+
+                <label for="jobFullDescription">คำอธิบายฉบับเต็ม:</label>
+                <textarea id="jobFullDescription" rows="5" placeholder="รายละเอียดงานทั้งหมด" required></textarea>
+
+                <label for="jobApplyLink">ลิงก์สมัครงาน (mailto: หรือ URL):</label>
+                <input type="text" id="jobApplyLink" placeholder="เช่น: mailto:hr@example.com หรือ https://apply.example.com" required>
+
+                <button id="saveJobBtn" class="bg-blue-500 hover:bg-blue-600">บันทึกงาน</button>
+                <button id="cancelEditBtn" class="bg-gray-500 hover:bg-gray-600 ml-2" style="display:none;">ยกเลิก</button>
+            </div>
+
+            <!-- List of Jobs for Admin -->
+            <div class="admin-job-list">
+                <h3 class="text-xl font-semibold text-gray-700 mb-3">รายการงานที่มีอยู่</h3>
+                <div id="adminJobListings">
+                    <!-- Admin job items will be loaded here -->
+                </div>
+            </div>
+        </div>
+
+        <footer class="text-center py-6 text-gray-500 text-sm">
+            &copy; 2023 แอปหางานสำหรับผู้สูงอายุ. สงวนลิขสิทธิ์.
+        </footer>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirmModal" class="modal-overlay">
+        <div class="modal-content">
+            <p id="confirmMessage"></p>
+            <div class="modal-buttons">
+                <button id="confirmYesBtn" class="confirm-yes">ใช่</button>
+                <button id="confirmNoBtn" class="confirm-no">ไม่</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Firebase Imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, addDoc, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global Firebase variables
+        let app;
+        let db;
+        let auth;
+        let userId = null;
+        let isAuthReady = false; // Flag to ensure auth is ready before Firestore ops
+
+        // Admin Panel Elements
+        const userIdDisplay = document.getElementById('userIdDisplay');
+        const adminJobListings = document.getElementById('adminJobListings');
+
+        // Admin Form Elements
+        const formTitle = document.getElementById('formTitle');
+        const jobIdToEdit = document.getElementById('jobIdToEdit');
+        const jobTitleInput = document.getElementById('jobTitle');
+        const jobCompanyInput = document.getElementById('jobCompany');
+        const jobLocationInput = document.getElementById('jobLocation');
+        const jobCategorySelect = document.getElementById('jobCategory');
+        const jobDescriptionInput = document.getElementById('jobDescription');
+        const jobFullDescriptionInput = document.getElementById('jobFullDescription');
+        const jobApplyLinkInput = document.getElementById('jobApplyLink');
+        const saveJobBtn = document.getElementById('saveJobBtn');
+        const cancelEditBtn = document.getElementById('cancelEditBtn');
+
+        // Confirmation Modal Elements
+        const confirmModal = document.getElementById('confirmModal');
+        const confirmMessage = document.getElementById('confirmMessage');
+        const confirmYesBtn = document.getElementById('confirmYesBtn');
+        const confirmNoBtn = document.getElementById('confirmNoBtn');
+
+        // Local copy of jobs data
+        let jobs = [];
+
+        // --- Firebase Initialization and Authentication ---
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+
+        // Initialize Firebase
+        app = initializeApp(firebaseConfig);
+        db = getFirestore(app);
+        auth = getAuth(app);
+
+        // Listen for auth state changes
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                userId = user.uid;
+                userIdDisplay.textContent = `User ID: ${userId}`;
+            } else {
+                // Sign in anonymously if no user is logged in
+                try {
+                    if (typeof __initial_auth_token !== 'undefined') {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await signInAnonymously(auth);
+                    }
+                } catch (error) {
+                    console.error("Error signing in:", error);
+                    userIdDisplay.textContent = "Error signing in.";
+                }
+            }
+            isAuthReady = true;
+            // Once authenticated, start listening for job data
+            if (userId) {
+                listenForJobs();
+            }
+        });
+
+        // --- Firestore Operations ---
+
+        // Listen for real-time updates to job listings
+        function listenForJobs() {
+            const jobsCollectionRef = collection(db, `artifacts/${appId}/public/data/jobs`);
+            onSnapshot(jobsCollectionRef, (snapshot) => {
+                const fetchedJobs = [];
+                snapshot.forEach(doc => {
+                    fetchedJobs.push({ id: doc.id, ...doc.data() });
+                });
+                jobs = fetchedJobs; // Update local jobs array
+                renderAdminJobListings(jobs); // Re-render admin job list
+            }, (error) => {
+                console.error("Error listening to jobs collection:", error);
+            });
+        }
+
+        // Add a new job to Firestore
+        async function addJob(jobData) {
+            try {
+                if (!userId) {
+                    console.error("User not authenticated. Cannot add job.");
+                    return;
+                }
+                const jobsCollectionRef = collection(db, `artifacts/${appId}/public/data/jobs`);
+                await addDoc(jobsCollectionRef, jobData);
+                console.log("Job added successfully!");
+                clearJobForm();
+            } catch (error) {
+                console.error("Error adding job:", error);
+            }
+        }
+
+        // Update an existing job in Firestore
+        async function updateJob(id, jobData) {
+            try {
+                if (!userId) {
+                    console.error("User not authenticated. Cannot update job.");
+                    return;
+                }
+                const jobDocRef = doc(db, `artifacts/${appId}/public/data/jobs`, id);
+                await setDoc(jobDocRef, jobData, { merge: true }); // merge: true to update specific fields
+                console.log("Job updated successfully!");
+                clearJobForm();
+            } catch (error) {
+                console.error("Error updating job:", error);
+            }
+        }
+
+        // Delete a job from Firestore
+        async function deleteJob(id) {
+            try {
+                if (!userId) {
+                    console.error("User not authenticated. Cannot delete job.");
+                    return;
+                }
+                const jobDocRef = doc(db, `artifacts/${appId}/public/data/jobs`, id);
+                await deleteDoc(jobDocRef);
+                console.log("Job deleted successfully!");
+            } catch (error) {
+                console.error("Error deleting job:", error);
+            }
+        }
+
+        // --- UI Rendering Functions ---
+
+        // Function to render job listings for the admin panel
+        function renderAdminJobListings(jobsData) {
+            adminJobListings.innerHTML = '';
+            if (jobsData.length === 0) {
+                adminJobListings.innerHTML = '<p class="text-gray-500">ยังไม่มีงานในระบบ</p>';
+                return;
+            }
+
+            jobsData.forEach(job => {
+                const jobItem = document.createElement('div');
+                jobItem.className = 'admin-job-item';
+                jobItem.innerHTML = `
+                    <span>${job.title} (${job.company})</span>
+                    <div class="actions">
+                        <button class="edit-btn" data-job-id="${job.id}">แก้ไข</button>
+                        <button class="delete-btn" data-job-id="${job.id}">ลบ</button>
+                    </div>
+                `;
+                adminJobListings.appendChild(jobItem);
+            });
+
+            // Add event listeners for edit and delete buttons in admin panel
+            document.querySelectorAll('.admin-job-item .edit-btn').forEach(button => {
+                button.addEventListener('click', (event) => {
+                    const jobId = event.target.dataset.jobId;
+                    editJob(jobId);
+                });
+            });
+
+            document.querySelectorAll('.admin-job-item .delete-btn').forEach(button => {
+                button.addEventListener('click', (event) => {
+                    const jobId = event.target.dataset.jobId;
+                    showConfirmModal('คุณแน่ใจหรือไม่ว่าต้องการลบงานนี้?', () => {
+                        deleteJob(jobId);
+                    });
+                });
+            });
+        }
+
+        // --- Job Form Management ---
+
+        // Clear the job form
+        function clearJobForm() {
+            jobIdToEdit.value = '';
+            jobTitleInput.value = '';
+            jobCompanyInput.value = '';
+            jobLocationInput.value = '';
+            jobCategorySelect.value = '';
+            jobDescriptionInput.value = '';
+            jobFullDescriptionInput.value = '';
+            jobApplyLinkInput.value = '';
+            formTitle.textContent = 'เพิ่มงานใหม่';
+            cancelEditBtn.style.display = 'none';
+            saveJobBtn.textContent = 'บันทึกงาน';
+            saveJobBtn.classList.remove('bg-orange-500', 'hover:bg-orange-600');
+            saveJobBtn.classList.add('bg-blue-500', 'hover:bg-blue-600');
+        }
+
+        // Populate form for editing
+        function editJob(jobId) {
+            const job = jobs.find(j => j.id === jobId);
+            if (job) {
+                jobIdToEdit.value = job.id;
+                jobTitleInput.value = job.title;
+                jobCompanyInput.value = job.company;
+                jobLocationInput.value = job.location;
+                jobCategorySelect.value = job.category;
+                jobDescriptionInput.value = job.description;
+                jobFullDescriptionInput.value = job.fullDescription;
+                jobApplyLinkInput.value = job.applyLink;
+
+                formTitle.textContent = 'แก้ไขงาน';
+                cancelEditBtn.style.display = 'inline-block';
+                saveJobBtn.textContent = 'อัปเดตงาน';
+                saveJobBtn.classList.remove('bg-blue-500', 'hover:bg-blue-600');
+                saveJobBtn.classList.add('bg-orange-500', 'hover:bg-orange-600');
+            }
+        }
+
+        // Handle save/update button click
+        saveJobBtn.addEventListener('click', async () => {
+            const id = jobIdToEdit.value;
+            const jobData = {
+                title: jobTitleInput.value,
+                company: jobCompanyInput.value,
+                location: jobLocationInput.value,
+                category: jobCategorySelect.value,
+                description: jobDescriptionInput.value,
+                fullDescription: jobFullDescriptionInput.value,
+                applyLink: jobApplyLinkInput.value,
+            };
+
+            // Basic validation
+            if (!jobData.title || !jobData.company || !jobData.location || !jobData.category ||
+                !jobData.description || !jobData.fullDescription || !jobData.applyLink) {
+                alert('กรุณากรอกข้อมูลให้ครบถ้วน'); // Using alert for simplicity, consider a custom modal
+                return;
+            }
+
+            if (id) {
+                await updateJob(id, jobData);
+            } else {
+                await addJob(jobData);
+            }
+        });
+
+        cancelEditBtn.addEventListener('click', clearJobForm);
+
+        // --- Confirmation Modal Functions ---
+
+        let confirmCallback = null;
+        function showConfirmModal(message, callback) {
+            confirmMessage.textContent = message;
+            confirmCallback = callback;
+            confirmModal.classList.add('show');
+        }
+
+        function closeConfirmModal() {
+            confirmModal.classList.remove('show');
+            confirmCallback = null;
+        }
+
+        confirmYesBtn.addEventListener('click', () => {
+            if (confirmCallback) {
+                confirmCallback();
+            }
+            closeConfirmModal();
+        });
+
+        confirmNoBtn.addEventListener('click', () => {
+            closeConfirmModal();
+        });
+
+        // Close modal when clicking outside
+        confirmModal.addEventListener('click', (event) => {
+            if (event.target === confirmModal) {
+                closeConfirmModal();
+            }
+        });
+
+        // Initial render and setup when the page loads
+        window.onload = () => {
+            // Initial render will happen after Firebase auth is ready and data is fetched
+        };
+    </script>
+</body>
+</html>
